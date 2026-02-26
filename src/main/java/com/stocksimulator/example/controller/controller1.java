@@ -13,7 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/stock")
 public class controller1 {
-
+    //
     private final marketanalytics ma;
     private final stockserviceinterface ssi;
     public controller1(priceengine pe,  stockserviceinterface ssi, marketanalytics ma) {
@@ -40,6 +40,8 @@ public class controller1 {
                                   @PathVariable int n    ) {
         return ma.getlastnprices(symbol, n);
     }
+    //here i done the only we can send the one json post at a time if you want bulk without time waste
+    //at the @Requestbody List<incoming> stock and in the service make a methos that accepts the list<incoming> and make for loop grab each stock and conver ot into the stock entity and save it in that loop only by calling entity manger method
 
     @PostMapping("/sendstock")
     public String sendstock(@RequestBody incoming stock) {
