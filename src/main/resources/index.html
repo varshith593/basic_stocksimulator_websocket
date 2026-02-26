@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time Stock Simulator</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 0;
+        }
+
+        h1 {
+            padding: 10px;
+        }
+
+        .right-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 300px 300px;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .box {
+            border: 2px solid black;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            border-bottom: 2px solid black;
+        }
+
+        td {
+            padding: 5px 0;
+        }
+
+        .price-up {
+            color: green;
+        }
+
+        .price-down {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Real-Time Stock Simulator</h1>
+<div id="status" style="padding-left:10px;">Connecting...</div>
+
+<div class="right-container">
+
+    <!-- BOX 1 -->
+    <div class="box">
+        <h3>Market Open Price</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Open</th>
+            </tr>
+            </thead>
+            <tbody id="openTable"></tbody>
+        </table>
+    </div>
+
+    <!-- BOX 2 -->
+    <div class="box">
+        <h3>Current Price</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Current</th>
+            </tr>
+            </thead>
+            <tbody id="currentTable"></tbody>
+        </table>
+    </div>
+
+    <!-- BOX 3 -->
+    <div class="box">
+        <h3>Average Price</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Average</th>
+            </tr>
+            </thead>
+            <tbody id="averageTable"></tbody>
+        </table>
+    </div>
+
+    <!-- BOX 4 -->
+    <div class="box">
+        Box 4
+    </div>
+
+</div>
+
+<script>
+    var socket = new SockJS('http://localhost:8080/ws-market');
+    var stompClient = Stomp.over(socket);
+
+    let openPrices = {};
+    let averages = {};
+    let history = {}; // store price history per stock
+
+    stompClient.connect({}, function () {
+
+        document.getElementById("status").innerHTML = "Connected!";
+        document.getElementById("status").style.color = "green";
+
+        stompClient.subscribe('/topic/stocks', function (message) {
+
+            var stock = JSON.parse(message.body);
+
+            updateOpen(stock);
+            updateCurrent(stock);
+            updateAverage(stock);
+
+        });
+
+    });
+
+    function updateOpen(stock) {
+        if (!openPrices[stock.symbol]) {
+            openPrices[stock.symbol] = stock.currentPrice;
+
+            let row = document.createElement("tr");
+            row.id = "open-" + stock.symbol;
+            row.innerHTML =
+                "<td>" + stock.symbol + "</td>" +
+                "<td>$" + stock.currentPrice.toFixed(2) + "</td>";
+
+            document.getElementById("openTable").appendChild(row);
+        }
+    }
+
+    function updateCurrent(stock) {
+
+        let row = document.getElementById("current-" + stock.symbol);
+
+        if (!row) {
+            row = document.createElement("tr");
+            row.id = "current-" + stock.symbol;
+            document.getElementById("currentTable").appendChild(row);
+        }
+
+        row.innerHTML =
+            "<td>" + stock.symbol + "</td>" +
+            "<td>$" + stock.currentPrice.toFixed(2) + "</td>";
+    }
+
+    function updateAverage(stock) {
+
+        if (!history[stock.symbol]) {
+            history[stock.symbol] = [];
+        }
+
+        history[stock.symbol].push(stock.currentPrice);
+
+        let sum = history[stock.symbol].reduce((a, b) => a + b, 0);
+        let avg = sum / history[stock.symbol].length;
+
+        let row = document.getElementById("avg-" + stock.symbol);
+
+        if (!row) {
+            row = document.createElement("tr");
+            row.id = "avg-" + stock.symbol;
+            document.getElementById("averageTable").appendChild(row);
+        }
+
+        row.innerHTML =
+            "<td>" + stock.symbol + "</td>" +
+            "<td>$" + avg.toFixed(2) + "</td>";
+    }
+
+</script>
+
+</body>
+</html>
